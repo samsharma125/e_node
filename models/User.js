@@ -8,8 +8,8 @@ const addressSchema = new mongoose.Schema(
     city: String,
     state: String,
     postalCode: String,
-    country: String,
-    phone: String
+    country: String
+    // ✅ phone removed from address
   },
   { _id: false }
 );
@@ -19,9 +19,8 @@ const userSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     phone: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, enum: ["user", "admin"], default: "user" },
-    addresses: [addressSchema],
-    registeredAt: { type: Date, default: Date.now }   // <-- new field
+    addresses: [addressSchema],   // ✅ still supports multiple addresses
+    registeredAt: { type: Date, default: Date.now }
   },
   { timestamps: true }
 );
