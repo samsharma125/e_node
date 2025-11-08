@@ -5,10 +5,12 @@ module.exports = (req, res, next) => {
   if (!header || !header.startsWith("Bearer ")) {
     return res.status(401).json({ message: "Authorization token missing" });
   }
+
   const token = header.replace("Bearer ", "");
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = { id: decoded.id, role: decoded.role || "user" };
+    // ✅ Only store user id
+    req.user = { id: decoded.id };
     next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid or expired token" });
