@@ -1,22 +1,16 @@
 const mongoose = require("mongoose");
 
-// Address sub-schema (unchanged)
-const addressSchema = new mongoose.Schema(
-  {
-    label: String,
-    line1: String,
-    line2: String,
-    city: String,
-    state: String,
-    postalCode: String,
-    country: String
-  },
-  { _id: false }
-);
+const userSchema = new mongoose.Schema({
+  // 🧩 Basic user info
+  name: { type: String, required: true },
+  phone: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
 
-// ✅ Add location sub-schema (NEW)
-const locationSchema = new mongoose.Schema(
-  {
+  // 🏠 Optional addresses
+  addresses: { type: Array, default: [] },
+
+  // 🌍 Location info (updated on registration/login)
+  location: {
     ip: String,
     city: String,
     region: String,
@@ -24,22 +18,24 @@ const locationSchema = new mongoose.Schema(
     latitude: Number,
     longitude: Number,
     timezone: String,
-    lastUpdated: { type: Date, default: Date.now }
+    lastUpdated: Date,
   },
-  { _id: false }
-);
 
-// ✅ Main User schema
-const userSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true, trim: true },
-    phone: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    addresses: [addressSchema],
-    location: locationSchema, // ✅ added field for storing location info
-    registeredAt: { type: Date, default: Date.now }
-  },
-  { timestamps: true }
-);
+  // 📅 Time tracking
+  registeredAt: { type: Date, default: Date.now },
+  lastLogin: { type: Date },
+
+  // 🧠 Login history
+  loginHistory: [
+    {
+      time: { type: Date, default: Date.now },
+      location: {
+        ip: String,
+        city: String,
+        country: String,
+      },
+    },
+  ],
+});
 
 module.exports = mongoose.model("User", userSchema);
