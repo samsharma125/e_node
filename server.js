@@ -6,6 +6,10 @@ const path = require("path");
 const fs = require("fs");
 const connectDB = require("./config/db");
 
+const categoryRoutes = require("./routes/categoryRoutes");  // 🌿 For plant categories
+const plantRoutes = require("./routes/plantRoutes");        // 🌱 For individual plants
+
+
 const authRoutes = require("./routes/authRoutes");
 const productRoutes = require("./routes/productRoutes");
 const cartRoutes = require("./routes/cartRoutes");
@@ -73,6 +77,15 @@ const fixMissingRegisteredDates = async () => {
     console.error("❌ Date fix error:", err.message);
   }
 };
+
+// ✅ Attach plant and category routes
+app.use("/api/categories", categoryRoutes);
+app.use("/api/plants", plantRoutes);
+
+
+
+
+
 
 // Run on startup
 fixMissingRegisteredDates();

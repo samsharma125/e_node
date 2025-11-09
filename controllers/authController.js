@@ -3,9 +3,9 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
 
-// ✅ JWT token for 7 days
+// ✅ JWT token for 15 days
 const signToken = (user) =>
-  jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+  jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "15d" });
 
 // 🌍 Helper function to fetch location using IP
 const getUserLocation = async (req) => {
