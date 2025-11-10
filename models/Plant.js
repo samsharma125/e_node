@@ -1,11 +1,25 @@
 const mongoose = require("mongoose");
 
-const plantSchema = new mongoose.Schema({
-  plantId: { type: Number, required: true, unique: true },
-  categoryId: { type: Number, required: true, ref: "Category" },
-  plantName: { type: String, required: true },
-  description: { type: String },
-  imageUrl: { type: String }
-});
+/* 🌿 Plant schema inside a category */
+const plantSchema = new mongoose.Schema(
+  {
+    plantId: { type: Number, required: true },
+    plantName: { type: String, required: true },
+    plantNameUrl: { type: String }, // slug or unique URL for frontend
+    plantPhotoUrl: { type: String },
+    description: { type: String },
+  },
+  { _id: false }
+);
 
-module.exports = mongoose.model("Plant", plantSchema);
+/* 🌳 Category schema */
+const categorySchema = new mongoose.Schema(
+  {
+    categoryId: { type: Number, required: true, unique: true },
+    categoryName: { type: String, required: true },
+    plants: [plantSchema], // each category has many plants
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("PlantCategory", categorySchema);

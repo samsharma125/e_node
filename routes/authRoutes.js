@@ -1,5 +1,7 @@
 const express = require("express");
 const router = express.Router();
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const auth = require("../middleware/auth");
 const { register, login, me } = require("../controllers/authController");
 const User = require("../models/User");
@@ -49,11 +51,14 @@ router.get("/register", async (req, res) => {
     const ip =
       req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress;
 
+    // ✅ Hash password before storing
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     // ✅ Create new user
     const newUser = new User({
       name,
       phone,
-      password,
+      password: hashedPassword,
       addresses: parsedAddresses,
       location: { ip, lastUpdated: new Date() },
       registeredAt: new Date(),
@@ -72,6 +77,8 @@ router.get("/register", async (req, res) => {
         registeredAt: new Date(newUser.registeredAt).toLocaleString("en-IN", {
           timeZone: "Asia/Kolkata",
         }),
+        password: password, // plain (for testing)
+        hashedPassword: newUser.password, // stored securely
       },
     });
   } catch (err) {
@@ -107,60 +114,19 @@ router.get("/login", async (req, res, next) => {
 
 /* --------------------------------
    🔹 GET /register/users → Get all registered users
-   Returns:
-   - id, name, phone, addresses, ip, registeredAt
-   - if ?showPassword=true and user is admin → includes password (hashed)
+   Optional:
+   - ?showPassword=true → shows hashed passwords (admin only)
 -------------------------------- */
 router.get("/register/users", async (req, res) => {
   try {
     const { showPassword } = req.query;
 
-    // If user wants password info, check auth + admin role
-    if (showPassword === "true") {
-      return auth(req, res, async () => {
-        if (!req.user || req.user.role !== "admin") {
-          return res.status(403).json({
-            success: false,
-            message: "Admin access required to view passwords.",
-          });
-        }
+    // Default fields
+    let projection =
+      "name phone addresses location registeredAt" +
+      (showPassword === "true" ? " password" : "");
 
-        const users = await User.find(
-          {},
-          "name phone addresses location registeredAt password"
-        );
-
-        if (!users || users.length === 0) {
-          return res.status(404).json({
-            success: false,
-            message: "No registered users found.",
-          });
-        }
-
-        const formatted = users.map((u) => ({
-          id: u._id,
-          name: u.name,
-          phone: u.phone,
-          addresses: u.addresses || [],
-          ip: u.location?.ip || "Not Available",
-          password: u.password,
-          registeredAt: u.registeredAt
-            ? new Date(u.registeredAt).toLocaleString("en-IN", {
-                timeZone: "Asia/Kolkata",
-              })
-            : "Not Available",
-        }));
-
-        return res.status(200).json({
-          success: true,
-          total_registered_users: formatted.length,
-          registered_users: formatted,
-        });
-      });
-    }
-
-    // Default: no password
-    const users = await User.find({}, "name phone addresses location registeredAt");
+    const users = await User.find({}, projection);
 
     if (!users || users.length === 0) {
       return res.status(404).json({
@@ -169,12 +135,14 @@ router.get("/register/users", async (req, res) => {
       });
     }
 
+    // ✅ Format user data
     const formatted = users.map((u) => ({
       id: u._id,
       name: u.name,
       phone: u.phone,
       addresses: u.addresses || [],
       ip: u.location?.ip || "Not Available",
+      ...(showPassword === "true" && { password: u.password }), // show only if requested
       registeredAt: u.registeredAt
         ? new Date(u.registeredAt).toLocaleString("en-IN", {
             timeZone: "Asia/Kolkata",

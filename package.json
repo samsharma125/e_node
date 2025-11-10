@@ -17,6 +17,7 @@
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.3",
+    "moongoose": "^0.0.5",
     "moongose": "^1.0.0",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
