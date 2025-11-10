@@ -111,43 +111,46 @@ router.get("/login", async (req, res, next) => {
     next(err);
   }
 });
-
 /* --------------------------------
-   🔹 GET /register/users → Get all registered users
-   Optional:
-   - ?showPassword=true → shows hashed passwords (admin only)
+   🔹 GET /register/users → All registered users
+   - Default: public (no passwords)
+   - ?showPassword=true → Admin only
 -------------------------------- */
-router.get("/register/users", async (req, res) => {
+router.get("/register/users", auth, async (req, res) => {
   try {
     const { showPassword } = req.query;
 
-    // Default fields
-    let projection =
+    // 🧠 Only allow admin to see passwords
+    if (showPassword === "true" && req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Admin access required to view passwords.",
+      });
+    }
+
+    const projection =
       "name phone addresses location registeredAt" +
       (showPassword === "true" ? " password" : "");
 
     const users = await User.find({}, projection);
 
-    if (!users || users.length === 0) {
+    if (!users.length) {
       return res.status(404).json({
         success: false,
         message: "No registered users found.",
       });
     }
 
-    // ✅ Format user data
     const formatted = users.map((u) => ({
       id: u._id,
       name: u.name,
       phone: u.phone,
       addresses: u.addresses || [],
       ip: u.location?.ip || "Not Available",
-      ...(showPassword === "true" && { password: u.password }), // show only if requested
-      registeredAt: u.registeredAt
-        ? new Date(u.registeredAt).toLocaleString("en-IN", {
-            timeZone: "Asia/Kolkata",
-          })
-        : "Not Available",
+      ...(showPassword === "true" && { password: u.password }),
+      registeredAt: new Date(u.registeredAt).toLocaleString("en-IN", {
+        timeZone: "Asia/Kolkata",
+      }),
     }));
 
     res.status(200).json({
@@ -163,6 +166,8 @@ router.get("/register/users", async (req, res) => {
     });
   }
 });
+
+
 
 /* --------------------------------
    🔹 GET /login/users → Get all users who have logged in
