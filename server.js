@@ -10,10 +10,7 @@ const path = require("path");
 const fs = require("fs");
 const connectDB = require("./config/db");
 
-<<<<<<< HEAD
 
-=======
->>>>>>> d99070ccc3993fe79b28bacbe1fe247f9696fb58
 // ✅ Load environment variables
 dotenv.config();
 
@@ -47,11 +44,7 @@ const authRoutes = require("./routes/authRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const adminRoutes = require("./routes/adminRoutes");
-<<<<<<< HEAD
 
-=======
-const categoryRoutes = require("./routes/categoryRoutes");
->>>>>>> d99070ccc3993fe79b28bacbe1fe247f9696fb58
 const plantRoutes = require("./routes/plantRoutes");
 
 const User = require("./models/User");
@@ -64,13 +57,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/admin", adminRoutes);
-<<<<<<< HEAD
 app.use("/api/plants", plantRoutes);
 app.use("/api/auth", authRoutes);
-=======
-app.use("/api/categories", categoryRoutes);
-app.use("/api/plants", plantRoutes);
->>>>>>> d99070ccc3993fe79b28bacbe1fe247f9696fb58
 
 
 // ============================
