@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 // ✅ routes/authRoutes.js
+=======
+>>>>>>> d99070ccc3993fe79b28bacbe1fe247f9696fb58
 const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
@@ -21,6 +24,10 @@ router.get("/register", async (req, res) => {
   try {
     const { name, phone, password, addresses } = req.query;
 
+<<<<<<< HEAD
+=======
+    // ✅ Validate required fields
+>>>>>>> d99070ccc3993fe79b28bacbe1fe247f9696fb58
     if (!name || !phone || !password) {
       return res.status(400).json({
         success: false,
@@ -28,6 +35,10 @@ router.get("/register", async (req, res) => {
       });
     }
 
+<<<<<<< HEAD
+=======
+    // ✅ Check if user already exists
+>>>>>>> d99070ccc3993fe79b28bacbe1fe247f9696fb58
     const existingUser = await User.findOne({ phone });
     if (existingUser) {
       return res.status(400).json({
@@ -36,7 +47,11 @@ router.get("/register", async (req, res) => {
       });
     }
 
+<<<<<<< HEAD
     // Parse optional addresses
+=======
+    // ✅ Parse addresses (if provided)
+>>>>>>> d99070ccc3993fe79b28bacbe1fe247f9696fb58
     let parsedAddresses = [];
     if (addresses) {
       try {
@@ -46,6 +61,7 @@ router.get("/register", async (req, res) => {
       }
     }
 
+<<<<<<< HEAD
     const ip =
       req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress;
 
@@ -53,6 +69,16 @@ router.get("/register", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user
+=======
+    // ✅ Capture IP address
+    const ip =
+      req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress;
+
+    // ✅ Hash password before storing
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // ✅ Create new user
+>>>>>>> d99070ccc3993fe79b28bacbe1fe247f9696fb58
     const newUser = new User({
       name,
       phone,
@@ -75,8 +101,13 @@ router.get("/register", async (req, res) => {
         registeredAt: new Date(newUser.registeredAt).toLocaleString("en-IN", {
           timeZone: "Asia/Kolkata",
         }),
+<<<<<<< HEAD
         password: password, // only for demo/testing
         hashedPassword: newUser.password,
+=======
+        password: password, // plain (for testing)
+        hashedPassword: newUser.password, // stored securely
+>>>>>>> d99070ccc3993fe79b28bacbe1fe247f9696fb58
       },
     });
   } catch (err) {
@@ -103,12 +134,17 @@ router.get("/login", async (req, res, next) => {
       });
     }
 
+<<<<<<< HEAD
     req.body = { phone, password };
+=======
+    req.body = { phone, password }; // reuse controller logic
+>>>>>>> d99070ccc3993fe79b28bacbe1fe247f9696fb58
     return await login(req, res, next);
   } catch (err) {
     next(err);
   }
 });
+<<<<<<< HEAD
 
 /* --------------------------------
    🔹 PUBLIC: GET /register/users → All registered users (safe list)
@@ -116,6 +152,30 @@ router.get("/login", async (req, res, next) => {
 router.get("/register/users", async (req, res) => {
   try {
     const users = await User.find({}, "name phone addresses location registeredAt");
+=======
+/* --------------------------------
+   🔹 GET /register/users → All registered users
+   - Default: public (no passwords)
+   - ?showPassword=true → Admin only
+-------------------------------- */
+router.get("/register/users", auth, async (req, res) => {
+  try {
+    const { showPassword } = req.query;
+
+    // 🧠 Only allow admin to see passwords
+    if (showPassword === "true" && req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Admin access required to view passwords.",
+      });
+    }
+
+    const projection =
+      "name phone addresses location registeredAt" +
+      (showPassword === "true" ? " password" : "");
+
+    const users = await User.find({}, projection);
+>>>>>>> d99070ccc3993fe79b28bacbe1fe247f9696fb58
 
     if (!users.length) {
       return res.status(404).json({
@@ -130,6 +190,10 @@ router.get("/register/users", async (req, res) => {
       phone: u.phone,
       addresses: u.addresses || [],
       ip: u.location?.ip || "Not Available",
+<<<<<<< HEAD
+=======
+      ...(showPassword === "true" && { password: u.password }),
+>>>>>>> d99070ccc3993fe79b28bacbe1fe247f9696fb58
       registeredAt: new Date(u.registeredAt).toLocaleString("en-IN", {
         timeZone: "Asia/Kolkata",
       }),
@@ -141,7 +205,10 @@ router.get("/register/users", async (req, res) => {
       registered_users: formatted,
     });
   } catch (error) {
+<<<<<<< HEAD
     console.error("Error fetching registered users:", error.message);
+=======
+>>>>>>> d99070ccc3993fe79b28bacbe1fe247f9696fb58
     res.status(500).json({
       success: false,
       message: "Error fetching registered users",
@@ -150,6 +217,7 @@ router.get("/register/users", async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
 /* --------------------------------
    ⚠️ DEBUG ONLY: GET /register/users-all → All users with hashed passwords
 -------------------------------- */
@@ -196,6 +264,12 @@ router.get("/register/users-all", async (req, res) => {
 
 /* --------------------------------
    🔹 GET /login/users → Users who have logged in
+=======
+
+
+/* --------------------------------
+   🔹 GET /login/users → Get all users who have logged in
+>>>>>>> d99070ccc3993fe79b28bacbe1fe247f9696fb58
 -------------------------------- */
 router.get("/login/users", async (req, res) => {
   try {
