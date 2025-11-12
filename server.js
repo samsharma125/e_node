@@ -14,6 +14,7 @@ const connectDB = require("./config/db");
 const User = require("./models/User");
 const Category = require("./models/Category");
 const Plant = require("./models/Plant");
+const sellerRoutes = require("./routes/sellerRoutes");
 
 // ✅ Load environment variables
 dotenv.config();
@@ -60,6 +61,8 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/plants", plantRoutes);
+// Existing app.use routes...
+app.use("/api/sellers", sellerRoutes);
 
 /* ---------------------------------------------
    ✅ Seeder Route for Categories + Plants
