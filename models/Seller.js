@@ -20,7 +20,8 @@ const sellerSchema = new mongoose.Schema({
   lastLogin: { type: Date },
 
   // ⚙️ Seller role for separation
-  role: { type: String, default: "seller" }
-});
+ 
+},{ timestamps: true } 
+);
 
 module.exports = mongoose.model("Seller", sellerSchema);
