@@ -1,21 +1,33 @@
 const express = require("express");
 const router = express.Router();
+const auth = require("../middleware/auth");
 const {
   registerSeller,
   loginSeller,
   getSellerProfile,
-  getAllSellersWithPassword
+  getAllSellersWithPassword,
+  addSellerProduct,
+  getSellerProducts,
+  getRandomSellerProducts,
 } = require("../controllers/sellerController");
-const auth = require("../middleware/auth");
 
 /* ===============================
-   🧩 Seller Routes
+   🧩 Seller Authentication Routes
 ================================*/
 router.post("/register", registerSeller);
 router.post("/login", loginSeller);
-router.get("/profile", auth, getSellerProfile);
+router.get("/profile", auth, getSellerProfile); // use auth middleware for protection
 
-// ✅ Public route (no auth): get all sellers with hashed passwords
-router.get("/all", getAllSellersWithPassword);
+/* ===============================
+   🌍 Seller Management Routes
+================================*/
+router.get("/all", getAllSellersWithPassword); // public route for testing
+
+/* ===============================
+   🪴 Seller Product Management Routes
+================================*/
+router.post("/add-product", addSellerProduct);
+router.get("/my-products/:sellerId", getSellerProducts);
+router.get("/random-products", getRandomSellerProducts);
 
 module.exports = router;

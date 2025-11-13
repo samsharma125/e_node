@@ -80,16 +80,48 @@ app.get("/api/seed", async (req, res) => {
     // Categories
     
     // 🌿 Category data
-    const categories = [
-      { category_name: "indoor plants", category_id: 1 },
-      { category_name: "ornamental plants", category_id: 2 },
-      { category_name: "edible plants", category_id: 3 },
-      { category_name: "medicinal plants", category_id: 4 },
-      { category_name: "outdoor plants", category_id: 5 },
-      { category_name: "air purify plants", category_id: 6 },
-      { category_name: "climber plants", category_id: 7 },
-      { category_name: "herbs plants", category_id: 8 },
-    ];
+   const categories = [
+  {
+    category_name: "Indoor Plants",
+    category_id: 1,
+    image_url: "https://drive.google.com/yourimage1", // clickable image
+  },
+  {
+    category_name: "Ornamental Plants",
+    category_id: 2,
+    image_url: "https://drive.google.com/yourimage2",
+  },
+  {
+    category_name: "Edible Plants",
+    category_id: 3,
+    image_url: "https://drive.google.com/yourimage3",
+  },
+  {
+    category_name: "Medicinal Plants",
+    category_id: 4,
+    image_url: "https://drive.google.com/yourimage4",
+  },
+  {
+    category_name: "Outdoor Plants",
+    category_id: 5,
+    image_url: "https://drive.google.com/yourimage5",
+  },
+  {
+    category_name: "Air Purify Plants",
+    category_id: 6,
+    image_url: "https://drive.google.com/yourimage6",
+  },
+  {
+    category_name: "Climber Plants",
+    category_id: 7,
+    image_url: "https://drive.google.com/yourimage7",
+  },
+  {
+    category_name: "Herbs Plants",
+    category_id: 8,
+    image_url: "https://drive.google.com/yourimage8",
+  }
+];
 
     // 🌱 All Plant Data// 🌱 All Plant Data
 const plants = [

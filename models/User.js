@@ -1,42 +1,27 @@
 const mongoose = require("mongoose");
 
-const userSchema = new mongoose.Schema({
-  // 🧩 Basic user info
-  name: { type: String, required: true },
-  phone: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  role: { type: String, default: "user" }, // ✅ Added for admin/user distinction
+const userSchema = new mongoose.Schema({ // 🧍 Basic info
+    name: { type: String, required: true },
+    phone: { type: String, required: true, unique: true },
 
-  // 🏠 Optional addresses
-  addresses: { type: Array, default: [] },
+    password: { type: String, required: true },
 
-  // 🌍 Location info (updated on registration/login)
-  location: {
-    ip: String,
-    city: String,
-    region: String,
-    country: String,
-    latitude: Number,
-    longitude: Number,
-    timezone: String,
-    lastUpdated: Date,
+    // 🏡 Full Address Section (same as Seller)
+    street: { type: String, required: true },
+    landmark: { type: String },
+    city: { type: String, required: true },
+    state: { type: String, required: true },
+    pincode: { type: String, required: true },
+    country: { type: String, default: "India" },
+
+    // 📅 Tracking
+    registeredAt: { type: Date, default: Date.now },
+    lastLogin: { type: Date },
+
+    // 👤 Role (optional)
+   
   },
-
-  // 📅 Time tracking
-  registeredAt: { type: Date, default: Date.now },
-  lastLogin: { type: Date },
-
-  // 🧠 Login history
-  loginHistory: [
-    {
-      time: { type: Date, default: Date.now },
-      location: {
-        ip: String,
-        city: String,
-        country: String,
-      },
-    },
-  ],
-});
+  { timestamps: true }
+);
 
 module.exports = mongoose.model("User", userSchema);

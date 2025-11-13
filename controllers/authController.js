@@ -29,11 +29,29 @@ const getUserLocation = async (req) => {
     return null;
   }
 };
-
-// ------------------ REGISTER ------------------
+// ------------------ REGISTER ------------------// ------------------ REGISTER ------------------
 exports.register = async (req, res, next) => {
   try {
-    const { name, phone, password, addresses } = req.body;
+    const {
+      name,
+      phone,
+      password,
+      street,
+      landmark,
+      city,
+      state,
+      pincode,
+      country
+    } = req.body;
+
+    // REQUIRED FIELD VALIDATION
+    if (!name || !phone || !password || !street || !city || !state || !pincode) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "All fields are required: name, phone, password, street, city, state, pincode.",
+      });
+    }
 
     // Check existing user
     const existing = await User.findOne({ phone });
@@ -43,20 +61,24 @@ exports.register = async (req, res, next) => {
     // Hash password
     const hashed = await bcrypt.hash(password, 10);
 
-    // Fetch location info (optional)
+    // Fetch location
     const location = await getUserLocation(req);
 
-    // Create new user
+    // Create user
     const user = await User.create({
       name,
       phone,
       password: hashed,
-      addresses: addresses || [],
+      street,
+      landmark,
+      city,
+      state,
+      pincode,
+      country,
       registeredAt: new Date(),
       location,
     });
 
-    // Generate token
     const token = signToken(user);
 
     res.status(201).json({
@@ -67,7 +89,12 @@ exports.register = async (req, res, next) => {
         id: user._id,
         name: user.name,
         phone: user.phone,
-        addresses: user.addresses,
+        street: user.street,
+        landmark: user.landmark,
+        city: user.city,
+        state: user.state,
+        pincode: user.pincode,
+        country: user.country,
         registeredAt: user.registeredAt,
         location: user.location,
       },
@@ -77,36 +104,35 @@ exports.register = async (req, res, next) => {
   }
 };
 
-// ------------------ LOGIN ------------------
+
+
+// ------------------ LOGIN ------------------// ------------------ LOGIN ------------------// ------------------ LOGIN ------------------
 exports.login = async (req, res, next) => {
   try {
     const { phone, password } = req.body;
+
+    if (!phone || !password) {
+      return res.status(400).json({ message: "Phone and password are required" });
+    }
+
     const user = await User.findOne({ phone });
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(401).json({ message: "Invalid credentials" });
 
-    // ✅ Fetch and update location on login
     const location = await getUserLocation(req);
 
-    // ✅ Create login data object
     const loginData = {
       time: new Date(),
       location: location
-        ? {
-            ip: location.ip,
-            city: location.city,
-            country: location.country,
-          }
+        ? { ip: location.ip, city: location.city, country: location.country }
         : {},
     };
 
-    // ✅ Update last login info
     user.lastLogin = loginData.time;
     user.location = location;
 
-    // ✅ Initialize loginHistory array if not present
     if (!user.loginHistory) user.loginHistory = [];
     user.loginHistory.push(loginData);
 
@@ -122,6 +148,12 @@ exports.login = async (req, res, next) => {
         id: user._id,
         name: user.name,
         phone: user.phone,
+        street: user.street,
+        landmark: user.landmark,
+        city: user.city,
+        state: user.state,
+        pincode: user.pincode,
+        country: user.country,
         registeredAt: user.registeredAt,
         lastLogin: user.lastLogin,
         location: user.location,
@@ -131,6 +163,9 @@ exports.login = async (req, res, next) => {
     next(err);
   }
 };
+
+
+
 
 // ------------------ PROFILE (ME) ------------------
 exports.me = async (req, res, next) => {

@@ -2,7 +2,8 @@ const mongoose = require("mongoose");
 
 const categorySchema = new mongoose.Schema({
   category_name: { type: String, required: true, trim: true },
-  category_id: { type: Number, required: true, unique: true }
+  category_id: { type: Number, required: true, unique: true },
+   image_url: { type: String } // ✅ Add this for clickable images
 });
 
 module.exports = mongoose.model("Category", categorySchema);
