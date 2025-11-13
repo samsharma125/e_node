@@ -3,10 +3,8 @@ const mongoose = require("mongoose");
 const userSchema = new mongoose.Schema({ // 🧍 Basic info
     name: { type: String, required: true },
     phone: { type: String, required: true, unique: true },
-
     password: { type: String, required: true },
-
-    // 🏡 Full Address Section (same as Seller)
+     // 🏡 Full Address Section (same as Seller)
     street: { type: String, required: true },
     landmark: { type: String },
     city: { type: String, required: true },

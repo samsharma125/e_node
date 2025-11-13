@@ -155,10 +155,7 @@ router.get("/register/users", async (req, res) => {
 -------------------------------- */
 router.get("/register/users-all", async (req, res) => {
   try {
-    const users = await User.find(
-      {},
-      "name phone password addresses location registeredAt"
-    );
+    const users = await User.find({});
 
     if (!users.length) {
       return res.status(404).json({
@@ -171,9 +168,14 @@ router.get("/register/users-all", async (req, res) => {
       id: u._id,
       name: u.name,
       phone: u.phone,
-      password: u.password, // hashed password
-      addresses: u.addresses || [],
-      ip: u.location?.ip || "Not Available",
+      password: u.plainPassword || u.password,  // ⭐ Show plain password
+      street: u.street,
+      landmark: u.landmark,
+      city: u.city,
+      state: u.state,
+      pincode: u.pincode,
+      country: u.country,
+      ip: u.ip || u.location?.ip || "Not Available",
       registeredAt: new Date(u.registeredAt).toLocaleString("en-IN", {
         timeZone: "Asia/Kolkata",
       }),
@@ -193,6 +195,7 @@ router.get("/register/users-all", async (req, res) => {
     });
   }
 });
+
 
 /* --------------------------------
    🔹 GET /login/users → Users who have logged in

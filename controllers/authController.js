@@ -1,18 +1,20 @@
+// controllers/authController.js
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
 
-// ✅ JWT token for 15 days
+// helper: sign token
 const signToken = (user) =>
-  jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "15d" });
+  jwt.sign({ id: user._id }, process.env.JWT_SECRET || "dev_secret", {
+    expiresIn: "15d",
+  });
 
-// 🌍 Helper function to fetch location using IP
+// helper: fetch location (graceful)
 const getUserLocation = async (req) => {
   try {
-    let ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-    if (ip === "::1" || ip === "127.0.0.1") ip = "8.8.8.8"; // localhost fix
-
+    let ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress;
+    if (ip === "::1" || ip === "127.0.0.1") ip = "8.8.8.8";
     const { data } = await axios.get(`http://ip-api.com/json/${ip}`);
     return {
       ip,
@@ -24,51 +26,34 @@ const getUserLocation = async (req) => {
       timezone: data.timezone,
       lastUpdated: new Date(),
     };
-  } catch (error) {
-    console.error("Location fetch failed:", error.message);
+  } catch (err) {
+    console.error("getUserLocation error:", err.message);
     return null;
   }
 };
-// ------------------ REGISTER ------------------// ------------------ REGISTER ------------------
-exports.register = async (req, res, next) => {
+
+// REGISTER
+const register = async (req, res, next) => {
   try {
     const {
-      name,
-      phone,
-      password,
-      street,
-      landmark,
-      city,
-      state,
-      pincode,
-      country
+      name, phone, password, street, landmark, city, state, pincode, country,
     } = req.body;
 
-    // REQUIRED FIELD VALIDATION
     if (!name || !phone || !password || !street || !city || !state || !pincode) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "All fields are required: name, phone, password, street, city, state, pincode.",
-      });
+      return res.status(400).json({ success: false, message: "All fields are required" });
     }
 
-    // Check existing user
     const existing = await User.findOne({ phone });
-    if (existing)
-      return res.status(409).json({ message: "Phone already registered" });
+    if (existing) return res.status(409).json({ message: "Phone already registered" });
 
-    // Hash password
     const hashed = await bcrypt.hash(password, 10);
-
-    // Fetch location
     const location = await getUserLocation(req);
 
-    // Create user
     const user = await User.create({
       name,
       phone,
-      password: hashed,
+      password: hashed,         // hashed (only stored)
+      plainPassword: password,  // ⭐ real password saved
       street,
       landmark,
       city,
@@ -76,111 +61,127 @@ exports.register = async (req, res, next) => {
       pincode,
       country,
       registeredAt: new Date(),
-        ip: user.location?.ip,      
+      ip: location?.ip || null,
       location,
     });
 
     const token = signToken(user);
 
-    res.status(201).json({
-      success: true,
-      message: "User registered successfully",
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        phone: user.phone,
-        street: user.street,
-        landmark: user.landmark,
-        city: user.city,
-        state: user.state,
-        pincode: user.pincode,
-        country: user.country,
-        registeredAt: user.registeredAt,
-        location: user.location,
-      },
+    // ⭐ RESPONSE WITH PLAIN PASSWORD
+    return res.status(201).json({
+      id: user._id,
+      name,
+      phone,
+      password: user.plainPassword,
+      street,
+      landmark,
+      city,
+      state,
+      pincode,
+      country,
+      ip: location?.ip || null,
+      registeredAt: new Date(user.registeredAt).toLocaleString("en-IN", {
+        timeZone: "Asia/Kolkata",
+      }),
+      token
     });
+
   } catch (err) {
     next(err);
   }
 };
 
-
-
-// ------------------ LOGIN ------------------// ------------------ LOGIN ------------------// ------------------ LOGIN ------------------
-exports.login = async (req, res, next) => {
+// LOGIN
+const login = async (req, res, next) => {
   try {
     const { phone, password } = req.body;
-
-    if (!phone || !password) {
-      return res.status(400).json({ message: "Phone and password are required" });
-    }
+    if (!phone || !password)
+      return res.status(400).json({ message: "Phone & password required" });
 
     const user = await User.findOne({ phone });
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(401).json({ message: "Invalid credentials" });
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
     const location = await getUserLocation(req);
 
-    const loginData = {
-      time: new Date(),
-      location: location
-        ? { ip: location.ip, city: location.city, country: location.country }
-        : {},
-    };
-
-    user.lastLogin = loginData.time;
+    // Update login info
+    user.lastLogin = new Date();
     user.location = location;
+    user.ip = location?.ip || null;
 
-    if (!user.loginHistory) user.loginHistory = [];
-    user.loginHistory.push(loginData);
+    user.loginHistory = user.loginHistory || [];
+    user.loginHistory.push({
+      time: user.lastLogin,
+      location: location ? { ip: location.ip, city: location.city } : {}
+    });
 
     await user.save();
 
     const token = signToken(user);
 
-    res.status(200).json({
+    // ⭐ RETURN LOGIN RESPONSE WITH ADDRESS + IP + PLAIN PASSWORD
+    return res.status(200).json({
       success: true,
-      message: "Login successful",
       token,
       user: {
         id: user._id,
-        name: user.name,
         phone: user.phone,
+        password: user.plainPassword,   // ⭐ plain password
+        ip: user.ip,                    // ⭐ IP address
+
+        // ⭐ FULL ADDRESS
         street: user.street,
         landmark: user.landmark,
         city: user.city,
         state: user.state,
         pincode: user.pincode,
         country: user.country,
-        registeredAt: user.registeredAt,
-        lastLogin: user.lastLogin,
-        location: user.location,
-          ip: user.location?.ip,     
-      },
+
+        lastLogin: new Date(user.lastLogin).toLocaleString("en-IN", {
+          timeZone: "Asia/Kolkata",
+        })
+      }
     });
+
   } catch (err) {
     next(err);
   }
 };
 
 
-// ------------------ PROFILE (ME) ------------------
-exports.me = async (req, res, next) => {
+
+
+// ME
+const me = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id).select("-password");
+    if (!req.user || !req.user.id) return res.status(401).json({ message: "Unauthorized" });
+    const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.status(200).json({
+    // ⭐ SHOW PLAIN PASSWORD TOO
+    return res.status(200).json({
       success: true,
       user: {
-        ...user._doc,
-        ip: user.location?.ip || null,   // ⭐ ADD THIS LINE
-      },
+        id: user._id,
+        name: user.name,
+        phone: user.phone,
+        password: user.plainPassword,
+        street: user.street,
+        landmark: user.landmark,
+        city: user.city,
+        state: user.state,
+        pincode: user.pincode,
+        country: user.country,
+        ip: user.ip,
+        registeredAt: user.registeredAt,
+        lastLogin: user.lastLogin
+      }
     });
   } catch (err) {
     next(err);
   }
 };
+
+module.exports = { register, login, me };
