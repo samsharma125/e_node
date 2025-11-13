@@ -76,6 +76,7 @@ exports.register = async (req, res, next) => {
       pincode,
       country,
       registeredAt: new Date(),
+        ip: user.location?.ip,      
       location,
     });
 
@@ -157,14 +158,13 @@ exports.login = async (req, res, next) => {
         registeredAt: user.registeredAt,
         lastLogin: user.lastLogin,
         location: user.location,
+          ip: user.location?.ip,     
       },
     });
   } catch (err) {
     next(err);
   }
 };
-
-
 
 
 // ------------------ PROFILE (ME) ------------------
@@ -175,7 +175,10 @@ exports.me = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      user,
+      user: {
+        ...user._doc,
+        ip: user.location?.ip || null,   // ⭐ ADD THIS LINE
+      },
     });
   } catch (err) {
     next(err);
