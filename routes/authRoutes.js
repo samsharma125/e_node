@@ -152,49 +152,8 @@ router.get("/register/users", async (req, res) => {
 
 /* --------------------------------
    ⚠️ DEBUG ONLY: GET /register/users-all → All users with hashed passwords
--------------------------------- */
-router.get("/register/users-all", async (req, res) => {
-  try {
-    const users = await User.find({});
-
-    if (!users.length) {
-      return res.status(404).json({
-        success: false,
-        message: "No registered users found.",
-      });
-    }
-
-    const formatted = users.map((u) => ({
-      id: u._id,
-      name: u.name,
-      phone: u.phone,
-      password: u.plainPassword || u.password,  // ⭐ Show plain password
-      street: u.street,
-      landmark: u.landmark,
-      city: u.city,
-      state: u.state,
-      pincode: u.pincode,
-      country: u.country,
-      ip: u.ip || u.location?.ip || "Not Available",
-      registeredAt: new Date(u.registeredAt).toLocaleString("en-IN", {
-        timeZone: "Asia/Kolkata",
-      }),
-    }));
-
-    res.status(200).json({
-      success: true,
-      total_registered_users: formatted.length,
-      registered_users: formatted,
-    });
-  } catch (error) {
-    console.error("Error fetching registered users (with password):", error.message);
-    res.status(500).json({
-      success: false,
-      message: "Error fetching registered users with password",
-      error: error.message,
-    });
-  }
-});
+-------------------------------- *
+//register/users
 
 
 /* --------------------------------

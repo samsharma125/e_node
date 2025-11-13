@@ -10,12 +10,14 @@ const signToken = (user) =>
     expiresIn: "15d",
   });
 
-// helper: fetch location (graceful)
+// helper: fetch location
 const getUserLocation = async (req) => {
   try {
     let ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress;
     if (ip === "::1" || ip === "127.0.0.1") ip = "8.8.8.8";
+
     const { data } = await axios.get(`http://ip-api.com/json/${ip}`);
+
     return {
       ip,
       city: data.city,
@@ -24,23 +26,34 @@ const getUserLocation = async (req) => {
       latitude: data.lat,
       longitude: data.lon,
       timezone: data.timezone,
-      lastUpdated: new Date(),
+      lastUpdated: new Date()
     };
-  } catch (err) {
-    console.error("getUserLocation error:", err.message);
+  } catch {
     return null;
   }
 };
 
-// REGISTER
+// REGISTER (correct with label, line1, line2)
 const register = async (req, res, next) => {
   try {
     const {
-      name, phone, password, street, landmark, city, state, pincode, country,
+      name,
+      phone,
+      password,
+      label,
+      line1,
+      line2,
+      city,
+      state,
+      pincode,
+      country
     } = req.body;
 
-    if (!name || !phone || !password || !street || !city || !state || !pincode) {
-      return res.status(400).json({ success: false, message: "All fields are required" });
+    if (!name || !phone || !password || !label || !line1 || !city || !state || !pincode) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required"
+      });
     }
 
     const existing = await User.findOne({ phone });
@@ -48,42 +61,49 @@ const register = async (req, res, next) => {
 
     const hashed = await bcrypt.hash(password, 10);
     const location = await getUserLocation(req);
+    const ipAddress = location?.ip || null;
 
     const user = await User.create({
       name,
       phone,
-      password: hashed,         // hashed (only stored)
-      plainPassword: password,  // ⭐ real password saved
-      street,
-      landmark,
+      password: hashed,
+      plainPassword: password,
+      label,
+      line1,
+      line2,
       city,
       state,
       pincode,
-      country,
+      country: country || "India",
       registeredAt: new Date(),
-      ip: location?.ip || null,
-      location,
+      ip: ipAddress,
+      location
     });
 
     const token = signToken(user);
 
-    // ⭐ RESPONSE WITH PLAIN PASSWORD
     return res.status(201).json({
+      success: true,
+      message: "User registered successfully",
+      token,
+
       id: user._id,
-      name,
-      phone,
+      name: user.name,
+      phone: user.phone,
       password: user.plainPassword,
-      street,
-      landmark,
-      city,
-      state,
-      pincode,
-      country,
-      ip: location?.ip || null,
-      registeredAt: new Date(user.registeredAt).toLocaleString("en-IN", {
-        timeZone: "Asia/Kolkata",
-      }),
-      token
+
+      // Address
+      label: user.label,
+      line1: user.line1,
+      line2: user.line2,
+      city: user.city,
+      state: user.state,
+      pincode: user.pincode,
+      country: user.country,
+
+      ip: ipAddress,
+      location: user.location,
+      registeredAt: user.registeredAt
     });
 
   } catch (err) {
@@ -91,56 +111,49 @@ const register = async (req, res, next) => {
   }
 };
 
-// LOGIN
+// LOGIN (fixed)
 const login = async (req, res, next) => {
   try {
     const { phone, password } = req.body;
+
     if (!phone || !password)
       return res.status(400).json({ message: "Phone & password required" });
 
     const user = await User.findOne({ phone });
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(401).json({ message: "Invalid credentials" });
 
     const location = await getUserLocation(req);
-
-    // Update login info
     user.lastLogin = new Date();
     user.location = location;
     user.ip = location?.ip || null;
-
-    user.loginHistory = user.loginHistory || [];
-    user.loginHistory.push({
-      time: user.lastLogin,
-      location: location ? { ip: location.ip, city: location.city } : {}
-    });
 
     await user.save();
 
     const token = signToken(user);
 
-    // ⭐ RETURN LOGIN RESPONSE WITH ADDRESS + IP + PLAIN PASSWORD
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       token,
       user: {
         id: user._id,
         phone: user.phone,
-        password: user.plainPassword,   // ⭐ plain password
-        ip: user.ip,                    // ⭐ IP address
+        password: user.plainPassword,
+        ip: user.ip,
 
-        // ⭐ FULL ADDRESS
-        street: user.street,
-        landmark: user.landmark,
+        // correct address
+        label: user.label,
+        line1: user.line1,
+        line2: user.line2,
         city: user.city,
         state: user.state,
         pincode: user.pincode,
         country: user.country,
 
         lastLogin: new Date(user.lastLogin).toLocaleString("en-IN", {
-          timeZone: "Asia/Kolkata",
+          timeZone: "Asia/Kolkata"
         })
       }
     });
@@ -150,17 +163,12 @@ const login = async (req, res, next) => {
   }
 };
 
-
-
-
-// ME
+// ME (correct)
 const me = async (req, res, next) => {
   try {
-    if (!req.user || !req.user.id) return res.status(401).json({ message: "Unauthorized" });
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // ⭐ SHOW PLAIN PASSWORD TOO
     return res.status(200).json({
       success: true,
       user: {
@@ -168,17 +176,21 @@ const me = async (req, res, next) => {
         name: user.name,
         phone: user.phone,
         password: user.plainPassword,
-        street: user.street,
-        landmark: user.landmark,
+
+        label: user.label,
+        line1: user.line1,
+        line2: user.line2,
         city: user.city,
         state: user.state,
         pincode: user.pincode,
         country: user.country,
+
         ip: user.ip,
         registeredAt: user.registeredAt,
         lastLogin: user.lastLogin
       }
     });
+
   } catch (err) {
     next(err);
   }
