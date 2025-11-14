@@ -115,7 +115,10 @@ router.get("/login", async (req, res, next) => {
 -------------------------------- */
 router.get("/register/users", async (req, res) => {
   try {
-    const users = await User.find({}, "name phone addresses location registeredAt");
+    const users = await User.find(
+      {},
+      "name phone label line1 line2 city state pincode country ip registeredAt"
+    );
 
     if (!users.length) {
       return res.status(404).json({
@@ -124,36 +127,56 @@ router.get("/register/users", async (req, res) => {
       });
     }
 
-    const formatted = users.map((u) => ({
-      id: u._id,
-      name: u.name,
-      phone: u.phone,
-      addresses: u.addresses || [],
-      ip: u.location?.ip || "Not Available",
-      registeredAt: new Date(u.registeredAt).toLocaleString("en-IN", {
-        timeZone: "Asia/Kolkata",
-      }),
-    }));
+    const formatted = users.map((u) => {
+      // ⭐ GENERATE TOKEN FOR EACH USER
+      const token = jwt.sign(
+        { id: u._id },
+        process.env.JWT_SECRET || "dev_secret",
+        {
+          expiresIn: "15d",
+        }
+      );
+
+      return {
+        id: u._id,
+        token, // ⭐ TOKEN ADDED HERE
+
+        name: u.name,
+        phone: u.phone,
+
+        // ⭐ FULL ADDRESS
+        label: u.label,
+        line1: u.line1,
+        line2: u.line2,
+        city: u.city,
+        state: u.state,
+        pincode: u.pincode,
+        country: u.country,
+
+        // ⭐ IP
+        ip: u.ip || "Not Available",
+
+        // ⭐ IST FORMAT DATE
+        registeredAt: new Date(u.registeredAt).toLocaleString("en-IN", {
+          timeZone: "Asia/Kolkata",
+        }),
+      };
+    });
 
     res.status(200).json({
       success: true,
       total_registered_users: formatted.length,
       registered_users: formatted,
     });
-  } catch (error) {
-    console.error("Error fetching registered users:", error.message);
+  } catch (err) {
+    console.error("Error fetching registered users:", err.message);
     res.status(500).json({
       success: false,
       message: "Error fetching registered users",
-      error: error.message,
+      error: err.message,
     });
   }
 });
-
-/* --------------------------------
-   ⚠️ DEBUG ONLY: GET /register/users-all → All users with hashed passwords
--------------------------------- *
-//register/users
 
 
 /* --------------------------------
