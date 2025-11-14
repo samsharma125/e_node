@@ -9,7 +9,7 @@ const sellerSchema = new mongoose.Schema(
     plainPassword: { type: String },
 
     // Shop Details
-    shopName: { type: String, required: true },
+ 
     line1: { type: String, required: true },
     line2: { type: String },
     city: { type: String, required: true },
