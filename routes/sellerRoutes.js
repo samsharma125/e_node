@@ -9,6 +9,7 @@ const {
   addSellerProduct,
   getSellerProducts,
   getRandomSellerProducts,
+  getLoggedInSellers,
 } = require("../controllers/sellerController");
 
 /* ===============================
@@ -22,6 +23,10 @@ router.get("/profile", auth, getSellerProfile); // use auth middleware for prote
    🌍 Seller Management Routes
 ================================*/
 router.get("/all", getAllSellersWithPassword); // public route for testing
+
+router.get("/logged-in", getLoggedInSellers);
+
+// router.get("/login/sellers", getLoggedInSellers);
 
 /* ===============================
    🪴 Seller Product Management Routes
