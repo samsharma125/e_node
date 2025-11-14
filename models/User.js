@@ -1,15 +1,15 @@
 const mongoose = require("mongoose");
 
-const sellerSchema = new mongoose.Schema(
+const userSchema = new mongoose.Schema(
   {
-    // Basic Info
+    // Basic Details
     name: { type: String, required: true },
     phone: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     plainPassword: { type: String },
 
-    // Shop Details
- 
+    // Address
+    label: { type: String },   // Home / Work / Other
     line1: { type: String, required: true },
     line2: { type: String },
     city: { type: String, required: true },
@@ -19,7 +19,10 @@ const sellerSchema = new mongoose.Schema(
 
     // IP + Location
     ip: { type: String },
-    location: { type: Object },
+    location: { type: Object }, // stores city, region, lat/lon, etc.
+
+    // Login activity
+    lastLogin: { type: Date },
 
     // Registered Date
     registeredAt: { type: Date, default: Date.now }
@@ -27,4 +30,4 @@ const sellerSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Seller", sellerSchema);
+module.exports = mongoose.model("User", userSchema);

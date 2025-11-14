@@ -4,13 +4,13 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
 
-// JWT signer
+// JWT Token Generator
 const signToken = (user) =>
   jwt.sign({ id: user._id }, process.env.JWT_SECRET || "dev_secret", {
     expiresIn: "15d",
   });
 
-// Get location/IP
+// Get User Location (IP + Geolocation)
 const getUserLocation = async (req) => {
   try {
     let ip =
@@ -37,7 +37,7 @@ const getUserLocation = async (req) => {
 };
 
 /* ============================================================
-   REGISTER (returns ALL fields separately)
+   REGISTER (Flat response)
 ============================================================ */
 const register = async (req, res, next) => {
   try {
@@ -74,15 +74,14 @@ const register = async (req, res, next) => {
     if (existing)
       return res.status(409).json({ message: "Phone already registered" });
 
-    const hashed = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const location = await getUserLocation(req);
-    const ipAddress = location?.ip || null;
 
     const user = await User.create({
       name,
       phone,
-      password: hashed,
+      password: hashedPassword,
       plainPassword: password,
       label,
       line1,
@@ -92,13 +91,12 @@ const register = async (req, res, next) => {
       pincode,
       country: country || "India",
       registeredAt: new Date(),
-      ip: ipAddress,
+      ip: location?.ip || null,
       location,
     });
 
     const token = signToken(user);
 
-    // 🔥 ALL FIELDS SEPARATE (FLAT RESPONSE)
     return res.status(201).json({
       success: true,
       message: "User registered successfully",
@@ -109,7 +107,6 @@ const register = async (req, res, next) => {
       phone: user.phone,
       password: user.plainPassword,
 
-      // Address
       label: user.label,
       line1: user.line1,
       line2: user.line2,
@@ -119,7 +116,6 @@ const register = async (req, res, next) => {
       country: user.country,
 
       ip: user.ip,
-     
       registeredAt: user.registeredAt,
     });
   } catch (err) {
@@ -127,9 +123,8 @@ const register = async (req, res, next) => {
   }
 };
 
-
 /* ============================================================
-   LOGIN (returns ALL fields separately)
+   LOGIN (Returns flat response)
 ============================================================ */
 const login = async (req, res, next) => {
   try {
@@ -146,18 +141,15 @@ const login = async (req, res, next) => {
     if (!match)
       return res.status(401).json({ message: "Invalid credentials" });
 
-    // ⭐ FIXED — location was missing
     const location = await getUserLocation(req);
 
     user.lastLogin = new Date();
     user.location = location;
     user.ip = location?.ip || null;
-
     await user.save();
 
     const token = signToken(user);
 
-    // ⭐ FLAT LOGIN RESPONSE
     return res.status(200).json({
       success: true,
       message: "Login successful",
@@ -187,11 +179,9 @@ const login = async (req, res, next) => {
   }
 };
 
-
 /* ============================================================
-   ME (returns ALL fields separately)
+   ME (Profile Info)
 ============================================================ */
-
 const me = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
