@@ -38,7 +38,7 @@ const getSellerLocation = async (req) => {
 
 exports.registerSeller = async (req, res) => {
   try {
-    const { name, phone, password, shopName, line1, city, state, pincode, country } = req.body;
+    const { name, phone, password, shopName, line1,line2, city, state, pincode, country } = req.body;
 
     if (!name || !phone || !password || !shopName || !line1 || !city || !state || !pincode) {
       return res.status(400).json({ success: false, message: "All required fields must be provided" });
@@ -59,6 +59,7 @@ exports.registerSeller = async (req, res) => {
       plainPassword: password,
       shopName,
       line1,
+      line2,
       city,
       state,
       pincode,
@@ -81,6 +82,8 @@ exports.registerSeller = async (req, res) => {
       name: newSeller.name,
       phone: newSeller.phone,
       shopName: newSeller.shopName,
+      line1: newSeller.line1,
+      lie2: newSeller.line2,
       city: newSeller.city,
       state: newSeller.state,
       pincode: newSeller.pincode,
