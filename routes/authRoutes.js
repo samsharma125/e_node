@@ -8,14 +8,14 @@ const { register, login, me } = require("../controllers/authController");
 const User = require("../models/User");
 
 /* --------------------------------
-   🔹 POST routes (used by frontend / app)
+   🔹 POST ROUTES
 -------------------------------- */
 router.post("/register", register);
 router.post("/login", login);
 router.get("/me", auth, me);
 
 /* --------------------------------
-   🔹 GET /register → Register new user (for testing/demo)
+   🔹 GET /register (Demo Registration)
 -------------------------------- */
 router.get("/register", async (req, res) => {
   try {
@@ -24,19 +24,19 @@ router.get("/register", async (req, res) => {
     if (!name || !phone || !password) {
       return res.status(400).json({
         success: false,
-        message: "All fields are required: name, phone, and password.",
+        message: "All fields are required: name, phone, password",
       });
     }
 
-    const existingUser = await User.findOne({ phone });
-    if (existingUser) {
+    const existing = await User.findOne({ phone });
+    if (existing) {
       return res.status(400).json({
         success: false,
-        message: "User already exists with this phone.",
+        message: "User already exists with this phone",
       });
     }
 
-    // Parse optional addresses
+    // Parse addresses optionally
     let parsedAddresses = [];
     if (addresses) {
       try {
@@ -47,41 +47,35 @@ router.get("/register", async (req, res) => {
     }
 
     const ip =
-      req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress;
+      req.headers["x-forwarded-for"]?.split(",")[0] ||
+      req.socket.remoteAddress;
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashed = await bcrypt.hash(password, 10);
 
-    // Create user
-    const newUser = new User({
+    const user = await User.create({
       name,
       phone,
-      password: hashedPassword,
+      password: hashed,
       addresses: parsedAddresses,
       location: { ip, lastUpdated: new Date() },
       registeredAt: new Date(),
     });
 
-    await newUser.save();
-
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
-      message: "✅ User registered successfully",
+      message: "User registered successfully (demo)",
       user: {
-        id: newUser._id,
-        name: newUser.name,
-        phone: newUser.phone,
-        ip: ip,
-        registeredAt: new Date(newUser.registeredAt).toLocaleString("en-IN", {
+        id: user._id,
+        name: user.name,
+        phone: user.phone,
+        ip,
+        registeredAt: new Date(user.registeredAt).toLocaleString("en-IN", {
           timeZone: "Asia/Kolkata",
         }),
-        password: password, // only for demo/testing
-        hashedPassword: newUser.password,
       },
     });
   } catch (err) {
-    console.error("Error in GET /register:", err.message);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Error registering user",
       error: err.message,
@@ -90,7 +84,7 @@ router.get("/register", async (req, res) => {
 });
 
 /* --------------------------------
-   🔹 GET /login → Login user via query params
+   🔹 GET /login (Demo Login)
 -------------------------------- */
 router.get("/login", async (req, res, next) => {
   try {
@@ -99,11 +93,11 @@ router.get("/login", async (req, res, next) => {
     if (!phone || !password) {
       return res.status(400).json({
         success: false,
-        message: "Phone and password are required.",
+        message: "Phone and password are required",
       });
     }
 
-    req.body = { phone, password };
+    req.body = { phone, password }; // forward to POST login controller
     return await login(req, res, next);
   } catch (err) {
     next(err);
@@ -111,7 +105,7 @@ router.get("/login", async (req, res, next) => {
 });
 
 /* --------------------------------
-   🔹 PUBLIC: GET /register/users → All registered users (safe list)
+   🔹 GET /register/users (All Registered Users)
 -------------------------------- */
 router.get("/register/users", async (req, res) => {
   try {
@@ -123,28 +117,24 @@ router.get("/register/users", async (req, res) => {
     if (!users.length) {
       return res.status(404).json({
         success: false,
-        message: "No registered users found.",
+        message: "No registered users found",
       });
     }
 
     const formatted = users.map((u) => {
-      // ⭐ GENERATE TOKEN FOR EACH USER
       const token = jwt.sign(
         { id: u._id },
         process.env.JWT_SECRET || "dev_secret",
-        {
-          expiresIn: "15d",
-        }
+        { expiresIn: "15d" }
       );
 
       return {
         id: u._id,
-        token, // ⭐ TOKEN ADDED HERE
+        token, // ⭐ token for each registered user
 
         name: u.name,
         phone: u.phone,
 
-        // ⭐ FULL ADDRESS
         label: u.label,
         line1: u.line1,
         line2: u.line2,
@@ -153,24 +143,21 @@ router.get("/register/users", async (req, res) => {
         pincode: u.pincode,
         country: u.country,
 
-        // ⭐ IP
         ip: u.ip || "Not Available",
 
-        // ⭐ IST FORMAT DATE
         registeredAt: new Date(u.registeredAt).toLocaleString("en-IN", {
           timeZone: "Asia/Kolkata",
         }),
       };
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       total_registered_users: formatted.length,
       registered_users: formatted,
     });
   } catch (err) {
-    console.error("Error fetching registered users:", err.message);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Error fetching registered users",
       error: err.message,
@@ -178,45 +165,63 @@ router.get("/register/users", async (req, res) => {
   }
 });
 
-
 /* --------------------------------
-   🔹 GET /login/users → Users who have logged in
+   🔹 GET /login/users (All Logged-In Users)
 -------------------------------- */
 router.get("/login/users", async (req, res) => {
   try {
-    const loggedInUsers = await User.find(
+    const users = await User.find(
       { lastLogin: { $exists: true, $ne: null } },
-      "name phone lastLogin"
+      "name phone lastLogin label line1 line2 city state pincode country ip"
     );
 
-    if (!loggedInUsers || loggedInUsers.length === 0) {
+    if (!users.length) {
       return res.status(404).json({
         success: false,
-        message: "No users have logged in yet.",
+        message: "No users have logged in yet",
       });
     }
 
-    const formatted = loggedInUsers.map((u) => ({
-      id: u._id,
-      name: u.name,
-      phone: u.phone,
-      lastLogin: u.lastLogin
-        ? new Date(u.lastLogin).toLocaleString("en-IN", {
-            timeZone: "Asia/Kolkata",
-          })
-        : "Not Available",
-    }));
+    const formatted = users.map((u) => {
+      const token = jwt.sign(
+        { id: u._id },
+        process.env.JWT_SECRET || "dev_secret",
+        { expiresIn: "15d" }
+      );
 
-    res.status(200).json({
+      return {
+        id: u._id,
+        token, // ⭐ token for logged-in user
+
+        name: u.name,
+        phone: u.phone,
+
+        label: u.label,
+        line1: u.line1,
+        line2: u.line2,
+        city: u.city,
+        state: u.state,
+        pincode: u.pincode,
+        country: u.country,
+
+        ip: u.ip,
+
+        lastLogin: new Date(u.lastLogin).toLocaleString("en-IN", {
+          timeZone: "Asia/Kolkata",
+        }),
+      };
+    });
+
+    return res.status(200).json({
       success: true,
       total_logged_in_users: formatted.length,
       logged_in_users: formatted,
     });
-  } catch (error) {
-    res.status(500).json({
+  } catch (err) {
+    return res.status(500).json({
       success: false,
-      message: "Error fetching logged-in users",
-      error: error.message,
+      message: "Error fetching login users",
+      error: err.message,
     });
   }
 });

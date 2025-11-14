@@ -127,6 +127,7 @@ const register = async (req, res, next) => {
   }
 };
 
+
 /* ============================================================
    LOGIN (returns ALL fields separately)
 ============================================================ */
@@ -135,9 +136,7 @@ const login = async (req, res, next) => {
     const { phone, password } = req.body;
 
     if (!phone || !password)
-      return res
-        .status(400)
-        .json({ message: "Phone & password required" });
+      return res.status(400).json({ message: "Phone & password required" });
 
     const user = await User.findOne({ phone });
     if (!user)
@@ -147,17 +146,18 @@ const login = async (req, res, next) => {
     if (!match)
       return res.status(401).json({ message: "Invalid credentials" });
 
+    // ⭐ FIXED — location was missing
+    const location = await getUserLocation(req);
 
-
-  
-   
+    user.lastLogin = new Date();
+    user.location = location;
     user.ip = location?.ip || null;
 
     await user.save();
 
     const token = signToken(user);
 
-    // 🔥 FLAT LOGIN RESPONSE
+    // ⭐ FLAT LOGIN RESPONSE
     return res.status(200).json({
       success: true,
       message: "Login successful",
@@ -167,6 +167,7 @@ const login = async (req, res, next) => {
       name: user.name,
       phone: user.phone,
       password: user.plainPassword,
+
       ip: user.ip,
 
       label: user.label,
@@ -186,9 +187,11 @@ const login = async (req, res, next) => {
   }
 };
 
+
 /* ============================================================
    ME (returns ALL fields separately)
 ============================================================ */
+
 const me = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
