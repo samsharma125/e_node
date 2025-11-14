@@ -1,33 +1,30 @@
 const mongoose = require("mongoose");
 
-const userSchema = new mongoose.Schema(
+const sellerSchema = new mongoose.Schema(
   {
     // Basic Info
     name: { type: String, required: true },
     phone: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    plainPassword: { type: String }, // for localhost (optional)
+    plainPassword: { type: String },
 
-    // Address (FINAL FIELDS)
-    label: { type: String, required: true },     // Home / Office
-    line1: { type: String, required: true },     // Main address line
-    line2: { type: String },                     // Optional
+    // Shop Details
+    shopName: { type: String, required: true },
+    line1: { type: String, required: true },
+    line2: { type: String },
     city: { type: String, required: true },
     state: { type: String, required: true },
     pincode: { type: String, required: true },
     country: { type: String, default: "India" },
 
-    // Tracking
-    registeredAt: { type: Date, default: Date.now },
-    lastLogin: { type: Date },
-
-    // IP and location
+    // IP + Location
     ip: { type: String },
     location: { type: Object },
 
-    loginHistory: { type: Array }
+    // Registered Date
+    registeredAt: { type: Date, default: Date.now }
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = mongoose.model("Seller", sellerSchema);
