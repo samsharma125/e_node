@@ -65,7 +65,7 @@ exports.registerSeller = async (req, res) => {
       pincode,
       country,
       ip: location?.ip || null,
-      location,
+     
       registeredAt: new Date(),
     });
 
