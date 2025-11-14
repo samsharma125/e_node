@@ -72,7 +72,7 @@ exports.registerSeller = async (req, res) => {
     await newSeller.save();
 
     // 🔑 Generate JWT
-    const token = jwt.sign({ id: newSeller._id, role: "seller" }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    const token = jwt.sign({ id: newSeller._id, role: "seller" }, process.env.JWT_SECRET, { expiresIn: "15d" });
 
     res.status(201).json({
       success: true,
