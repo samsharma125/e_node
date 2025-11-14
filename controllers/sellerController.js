@@ -1,7 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Seller = require("../models/Seller");
-const SellerItem = require("../models/SellerItem"); // <-- add this for product management
+const SellerItem = require("../models/SellerItem");
 const axios = require("axios");
 
 // Get Seller IP + Location
@@ -34,11 +34,9 @@ const getSellerLocation = async (req) => {
 /* ===============================
    🧩 REGISTER SELLER
 ================================*/
-
-
 exports.registerSeller = async (req, res) => {
   try {
-    const { name, phone, password, shopName, line1,line2, city, state, pincode, country } = req.body;
+    const { name, phone, password, shopName, line1, line2, city, state, pincode, country } = req.body;
 
     if (!name || !phone || !password || !shopName || !line1 || !city || !state || !pincode) {
       return res.status(400).json({ success: false, message: "All required fields must be provided" });
@@ -65,19 +63,18 @@ exports.registerSeller = async (req, res) => {
       pincode,
       country,
       ip: location?.ip || null,
-     
+      location,
       registeredAt: new Date(),
     });
 
     await newSeller.save();
 
-    // 🔑 Generate JWT
     const token = jwt.sign({ id: newSeller._id, role: "seller" }, process.env.JWT_SECRET, { expiresIn: "15d" });
 
     res.status(201).json({
       success: true,
       message: "Seller registered successfully",
-      token, // ✅ now included
+      token,
       id: newSeller._id,
       name: newSeller.name,
       phone: newSeller.phone,
@@ -92,15 +89,13 @@ exports.registerSeller = async (req, res) => {
       registeredAt: newSeller.registeredAt,
     });
   } catch (error) {
-    console.error(error.message);
     res.status(500).json({ success: false, message: "Server Error", error: error.message });
   }
 };
 
 
-
 /* ===============================
-   🔑 LOGIN SELLER
+   🔐 LOGIN SELLER
 ================================*/
 exports.loginSeller = async (req, res) => {
   try {
@@ -119,7 +114,9 @@ exports.loginSeller = async (req, res) => {
     const location = await getSellerLocation(req);
     seller.location = location;
     seller.ip = location?.ip || null;
+    seller.lastLogin = new Date();
     await seller.save();
+    
 
     const token = jwt.sign({ id: seller._id, role: "seller" }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
@@ -145,11 +142,66 @@ exports.loginSeller = async (req, res) => {
   }
 };
 
+
+/* ===============================
+   🔥 GET ALL LOGGED-IN SELLERS
+================================*/
+exports.getLoggedInSellers = async (req, res) => {
+  try {
+    const sellers = await Seller.find(
+      { lastLogin: { $exists: true, $ne: null } },
+      "name phone shopName city state pincode country ip lastLogin"
+    ).sort({ lastLogin: -1 });
+
+    if (!sellers.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No sellers have logged in yet.",
+      });
+    }
+
+    const formatted = sellers.map((seller) => {
+      const token = jwt.sign(
+        { id: seller._id, role: "seller" },
+        process.env.JWT_SECRET || "dev_secret",
+        { expiresIn: "7d" }
+      );
+
+      return {
+        id: seller._id,
+        token,
+        name: seller.name,
+        phone: seller.phone,
+        shopName: seller.shopName,
+        city: seller.city,
+        state: seller.state,
+        pincode: seller.pincode,
+        country: seller.country,
+        ip: seller.ip || "Not Available",
+        lastLogin: new Date(seller.lastLogin).toLocaleString("en-IN", {
+          timeZone: "Asia/Kolkata",
+        }),
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      total_logged_in_sellers: formatted.length,
+      logged_in_sellers: formatted,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+
 /* ===============================
    👤 GET SELLER PROFILE
 ================================*/
-
-
 exports.getSellerProfile = async (req, res) => {
   try {
     const seller = await Seller.findById(req.user.id).select("-password");
@@ -161,10 +213,10 @@ exports.getSellerProfile = async (req, res) => {
   }
 };
 
-/* ===============================
-   📋 GET ALL SELLERS (with password for testing)
-================================*/
 
+/* ===============================
+   📋 GET ALL SELLERS (Testing)
+================================*/
 exports.getAllSellersWithPassword = async (req, res) => {
   try {
     const sellers = await Seller.find();
@@ -174,11 +226,10 @@ exports.getAllSellersWithPassword = async (req, res) => {
   }
 };
 
+
 /* ===============================
    🪴 ADD SELLER PRODUCT
 ================================*/
-
-
 exports.addSellerProduct = async (req, res) => {
   try {
     const { sellerId, plantId, price } = req.body;
@@ -195,11 +246,10 @@ exports.addSellerProduct = async (req, res) => {
   }
 };
 
+
 /* ===============================
    📦 GET SELLER PRODUCTS
 ================================*/
-
-
 exports.getSellerProducts = async (req, res) => {
   try {
     const { sellerId } = req.params;
@@ -210,11 +260,10 @@ exports.getSellerProducts = async (req, res) => {
   }
 };
 
+
 /* ===============================
    🎲 GET RANDOM SELLER PRODUCTS
 ================================*/
-
-
 exports.getRandomSellerProducts = async (req, res) => {
   try {
     const items = await SellerItem.aggregate([{ $sample: { size: 5 } }]);
