@@ -111,17 +111,18 @@ router.get("/register/users", async (req, res) => {
   try {
     const users = await User.find(
       {},
-      "name phone label line1 line2 city state pincode country ip registeredAt"
+      "name phone plainPassword label line1 line2 city state pincode country ip registeredAt"
     );
 
     if (!users.length) {
       return res.status(404).json({
         success: false,
-        message: "No registered users found",
+        message: "No registered users found.",
       });
     }
 
     const formatted = users.map((u) => {
+      // ⭐ Generate token for each user
       const token = jwt.sign(
         { id: u._id },
         process.env.JWT_SECRET || "dev_secret",
@@ -130,11 +131,13 @@ router.get("/register/users", async (req, res) => {
 
       return {
         id: u._id,
-        token, // ⭐ token for each registered user
+        token,
 
         name: u.name,
         phone: u.phone,
+        password: u.plainPassword || "N/A", // ⭐ Include plain password
 
+        // ⭐ FULL ADDRESS
         label: u.label,
         line1: u.line1,
         line2: u.line2,
@@ -143,8 +146,10 @@ router.get("/register/users", async (req, res) => {
         pincode: u.pincode,
         country: u.country,
 
+        // ⭐ IP
         ip: u.ip || "Not Available",
 
+        // ⭐ IST TIME
         registeredAt: new Date(u.registeredAt).toLocaleString("en-IN", {
           timeZone: "Asia/Kolkata",
         }),
@@ -156,7 +161,9 @@ router.get("/register/users", async (req, res) => {
       total_registered_users: formatted.length,
       registered_users: formatted,
     });
+
   } catch (err) {
+    console.error("Error fetching registered users:", err.message);
     return res.status(500).json({
       success: false,
       message: "Error fetching registered users",
@@ -165,6 +172,8 @@ router.get("/register/users", async (req, res) => {
   }
 });
 
+
+
 /* --------------------------------
    🔹 GET /login/users (All Logged-In Users)
 -------------------------------- */
@@ -172,17 +181,18 @@ router.get("/login/users", async (req, res) => {
   try {
     const users = await User.find(
       { lastLogin: { $exists: true, $ne: null } },
-      "name phone lastLogin label line1 line2 city state pincode country ip"
+      "name phone plainPassword label line1 line2 city state pincode country ip lastLogin"
     );
 
-    if (!users.length) {
+    if (users.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "No users have logged in yet",
+        message: "No users have logged in yet.",
       });
     }
 
     const formatted = users.map((u) => {
+      // ⭐ Generate token for each logged-in user
       const token = jwt.sign(
         { id: u._id },
         process.env.JWT_SECRET || "dev_secret",
@@ -191,11 +201,13 @@ router.get("/login/users", async (req, res) => {
 
       return {
         id: u._id,
-        token, // ⭐ token for logged-in user
+        token,
 
         name: u.name,
         phone: u.phone,
+        password: u.plainPassword || "N/A",
 
+        // ⭐ Full Address
         label: u.label,
         line1: u.line1,
         line2: u.line2,
@@ -204,11 +216,15 @@ router.get("/login/users", async (req, res) => {
         pincode: u.pincode,
         country: u.country,
 
-        ip: u.ip,
+        // ⭐ IP Address
+        ip: u.ip || "Not Available",
 
-        lastLogin: new Date(u.lastLogin).toLocaleString("en-IN", {
-          timeZone: "Asia/Kolkata",
-        }),
+        // ⭐ Last Login in IST
+        lastLogin: u.lastLogin
+          ? new Date(u.lastLogin).toLocaleString("en-IN", {
+              timeZone: "Asia/Kolkata",
+            })
+          : "Not Available",
       };
     });
 
@@ -217,13 +233,15 @@ router.get("/login/users", async (req, res) => {
       total_logged_in_users: formatted.length,
       logged_in_users: formatted,
     });
-  } catch (err) {
+  } catch (error) {
+    console.error("Error fetching login users:", error.message);
     return res.status(500).json({
       success: false,
       message: "Error fetching login users",
-      error: err.message,
+      error: error.message,
     });
   }
 });
+
 
 module.exports = router;

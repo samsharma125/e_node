@@ -13,10 +13,14 @@ const sellerSchema = new mongoose.Schema({
   state: { type: String, required: true },
   pincode: { type: String, required: true },
   country: { type: String, default: "India" },
+      // 🌍 IP + Location
+    ip: { type: String },
 
   // 📅 Tracking
   registeredAt: { type: Date, default: Date.now },
   lastLogin: { type: Date },
+ 
+
 
   // ⚙️ Seller role for separation
  
