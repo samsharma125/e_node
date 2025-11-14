@@ -83,7 +83,7 @@ exports.registerSeller = async (req, res) => {
       phone: newSeller.phone,
       shopName: newSeller.shopName,
       line1: newSeller.line1,
-      lie2: newSeller.line2,
+      line2: newSeller.line2,
       city: newSeller.city,
       state: newSeller.state,
       pincode: newSeller.pincode,
