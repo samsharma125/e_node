@@ -15,8 +15,7 @@ const sellerSchema = new mongoose.Schema(
     pincode: { type: String, required: true },
     country: { type: String, default: "India" },
 
-    ip: { type: String },
-    location: { type: Object },
+    ip: { type: String },   // Only IP should remain (NO location object!)
 
     registeredAt: { type: Date, default: Date.now },
     lastLogin: { type: Date },
@@ -24,4 +23,5 @@ const sellerSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.models.Seller || mongoose.model("Seller", sellerSchema);
+module.exports =
+  mongoose.models.Seller || mongoose.model("Seller", sellerSchema);

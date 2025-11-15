@@ -48,7 +48,6 @@ exports.registerSeller = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const location = await getSellerLocation(req);
 
     const newSeller = new Seller({
       name,
@@ -62,14 +61,17 @@ exports.registerSeller = async (req, res) => {
       state,
       pincode,
       country,
-      ip: location?.ip || null,
-      location,
+      ip: req.ip, // only save ip
       registeredAt: new Date(),
     });
 
     await newSeller.save();
 
-    const token = jwt.sign({ id: newSeller._id, role: "seller" }, process.env.JWT_SECRET, { expiresIn: "15d" });
+    const token = jwt.sign(
+      { id: newSeller._id, role: "seller" },
+      process.env.JWT_SECRET,
+      { expiresIn: "15d" }
+    );
 
     res.status(201).json({
       success: true,
@@ -88,6 +90,7 @@ exports.registerSeller = async (req, res) => {
       ip: newSeller.ip,
       registeredAt: newSeller.registeredAt,
     });
+
   } catch (error) {
     res.status(500).json({ success: false, message: "Server Error", error: error.message });
   }
@@ -111,9 +114,9 @@ exports.loginSeller = async (req, res) => {
     const isMatch = await bcrypt.compare(password, seller.password);
     if (!isMatch) return res.status(401).json({ success: false, message: "Invalid credentials" });
 
-    const location = await getSellerLocation(req);
-    seller.location = location;
-    seller.ip = location?.ip || null;
+   
+   
+    seller.ip = req.ip;
     seller.lastLogin = new Date();
     await seller.save();
     
